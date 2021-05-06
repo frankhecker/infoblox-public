@@ -1,4 +1,8 @@
-"""Create Infoblox ranges by importing them from a CSV file.
+"""Import Infoblox data objects from a CSV file.
+
+This script uses the Infoblox Web API to programmatically start a task
+to import Infoblox data objects from a CSV file, check on the progress
+of the import, and report on its success or failure.
 
 The script obtains Infoblox WAPI credentials and related information
 from an Infoblox configuration file in INI format as follows:
@@ -361,7 +365,7 @@ def ib_csv_import(grid, csv_path):
     import_id = result['csv_import_task']['import_id']
 
     # Display ongoing status of CSV import.
-    (failed, _) = ib_display_import_progress(grid, import_ref)
+    (_, failed) = ib_display_import_progress(grid, import_ref)
 
     # Return pathname of CSV error log if any errors occurred.
     if failed <= 0:

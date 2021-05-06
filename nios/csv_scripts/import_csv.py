@@ -113,6 +113,15 @@ def get_cmd_args():
         help='profile in Infoblox configuration file',
     )
 
+    parser.add_argument(
+        '--timeout',
+        action='store',
+        dest='timeout',
+        type=int,
+        default=1800,
+        help='maximum time to let job run (default 1800 seconds)',
+    )
+
     # Add positional argument for specifying the CSV import file.
     parser.add_argument(
         action='store',
@@ -128,6 +137,7 @@ def get_cmd_args():
     cmd_args = {}
     cmd_args['ib_config'] = args.ib_config
     cmd_args['ib_profile'] = args.ib_profile
+    cmd_args['timeout'] = args.timeout
     cmd_args['csv_path'] = args.csv_path
     return cmd_args
 
@@ -258,7 +268,7 @@ def ib_init(ib_config, ib_profile):
     return grid
 
 
-def ib_csv_import(grid, csv_path):
+def ib_csv_import(grid, csv_path, timeout):
     """Import contents of csv_path into grid, return name of error log."""
 
     # Open the CSV import file and make sure it exists.
@@ -365,7 +375,7 @@ def ib_csv_import(grid, csv_path):
     import_id = result['csv_import_task']['import_id']
 
     # Display ongoing status of CSV import.
-    (_, failed) = ib_display_import_progress(grid, import_ref)
+    (_, failed) = ib_display_import_progress(grid, import_ref, timeout)
 
     # Return pathname of CSV error log if any errors occurred.
     if failed <= 0:
@@ -373,14 +383,14 @@ def ib_csv_import(grid, csv_path):
     return ib_get_csv_error_log(grid, import_id)
 
 
-def ib_display_import_progress(grid, import_ref):
+def ib_display_import_progress(grid, import_ref, timeout):
     """Display import_ref progress, return # lines that succeeded, failed."""
 
     # Authentication info for the grid.
     req_cookies = {'ibapauth': grid['auth_cookie']}
 
-    # Loop checking up to 30 minutes to see if CSV import is complete.
-    timeout = 1800
+    # Loop up to timeout seconds to see if CSV import is complete.
+    completed = False
     time_so_far = 0
     while time_so_far < timeout:
         try:
@@ -410,6 +420,7 @@ def ib_display_import_progress(grid, import_ref):
                        result['lines_failed'],
                        )
                  )
+            completed = True
             break
         print(
             ('Import {}, processed: {}, '
@@ -421,6 +432,9 @@ def ib_display_import_progress(grid, import_ref):
         )
         time_so_far = time_so_far + 30
         time.sleep(30)
+
+    if not completed:
+        print('Import did not complete in {} seconds'.format(timeout))
     return (result['lines_processed'], result['lines_failed'])
 
 
@@ -522,7 +536,7 @@ def main():
     grid = ib_init(cmd_args['ib_config'], cmd_args['ib_profile'])
 
     # Attempt to import the CSV file.
-    error_log = ib_csv_import(grid, csv_path)
+    error_log = ib_csv_import(grid, csv_path, cmd_args['timeout'])
     if is_nonblank_string(error_log):
         print('See {} for CSV import errors'.format(error_log))
 

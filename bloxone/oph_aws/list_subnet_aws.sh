@@ -44,8 +44,19 @@ shift `expr ${OPTIND} - 1`
 subnet="$1"
 
 # Check to see if the region or VPC were specified incorrectly.
-[ -z "${REGION}" -o "${REGION}" = "-1" -o "${REGION}" = "-l" ] && usage
-[ "${vpc}" = "-1" -o "${vpc}" = "-l" ] && usage
+[ -z "${REGION}" ] && usage
+case "${REGION}" in 
+    -1|-l|-v)
+        echo "${fn}: -r option missing region"
+        usage
+        ;;
+esac
+case "${vpc}" in 
+    -1|-l|-r)
+        echo "${fn}: -v option missing VPC"
+        usage
+        ;;
+esac
 
 # If a VPC was specified, find it by ID, address, or name.
 # NOTE: A search by name may return multiple VPC IDs.

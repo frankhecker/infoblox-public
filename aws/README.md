@@ -6,6 +6,8 @@ Utility scripts for working with AWS using the AWS CLI.
   names.
 * `list_subnet_aws.sh`: List subnet IDs and (optionally) subnet
   addresses and names.
+* `create_vpc_aws.sh`: Create a VPC and optionally give it a name
+* `delete_vpc_aws.sh`: Delete a VPC by ID, address, or name.
 
 Examples of how to use these scripts:
 
@@ -27,10 +29,25 @@ Examples of how to use these scripts:
     # List subnet IDs in VPC vpc-020f5bab08c0d3f43 in region us-west-1
     sh list_vpc_aws.sh -v vpc-020f5bab08c0d3f43 -r us-west-1
 
+    # Create a VPC 10.192.0.0/20 in default region
+    sh create_vpc_aws.sh 10.192.0.0/20
+
+    # Create a VPC 10.128.0.0/20 in us-west-2 region with name "My VPC"
+    sh create_vpc_aws.sh -r us-west-2 10.128.0.0/20 "My VPC"
+
+    # Delete the VPC 10.192.0.0/20 in default region
+    sh delete_vpc_aws.sh 10.192.0.0/20
+
+    # Delete the VPC in us-west-2 region with name "My VPC"
+    sh delete_vpc_aws.sh -r us-west-2 "My VPC"
+
+    # Delete the VPC vpc-020f5bab08c0d3f43 in us-west-1 region
+    sh delete_vpc_aws.sh -r us-west-1 vpc-020f5bab08c0d3f43
+
 As implied above, the scripts allow VPCs and subnets to be identified
 by ID, address, or name (i.e., the value of the "Name" tag). The
-scripts properly handle cases where the name contains spaces or is
-duplicated across multiple VPCs or subnets.
+scripts properly handle cases where the name contains spaces or the
+name or address are duplicated across multiple VPCs or subnets.
 
 There are also some test scripts to verify proper functioning of the
 above scripts.
@@ -38,4 +55,6 @@ above scripts.
 Running the scripts requires that a current version of the AWS CLI be
 installed (<https://aws.amazon.com/cli/>). At present the scripts also
 require that a script `~/set-aws-variables.sh` be present and set the
-value of the variable REGION to the desired default AWS region.
+value of the variable REGION to the desired default AWS region (e.g.,
+"us-west-2") and the value of the variable CREATOR to the desired
+creator userid (e.g., "jdoe").

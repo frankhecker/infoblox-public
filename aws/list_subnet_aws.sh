@@ -8,9 +8,10 @@ dir=`dirname $0`
 
 # Print usage information if needed.
 usage() {
-    echo >&2 "Usage: ${fn} [-1] [-l] [-r <region>] [-v vpc] [<subnet>]"
-    echo >&2 "-1: print subnet ids one per line"
-    echo >&2 "-l: also print subnet's VPC, address, and name (implies -1)"
+    echo >&2 "Usage: ${fn} [-q] [-1] [-l] [-r <region>] [-v vpc] [<subnet>]"
+    echo >&2 "-q: run quietly without unneeded messages"
+    echo >&2 "-1: display subnet ids one per line"
+    echo >&2 "-l: also display subnet's VPC, address, and name (implies -1)"
     echo >&2 "-r <region>: AWS region to search"
     echo >&2 "-v <vpc>: VPC ID, address, or name to search"
     echo >&2 "<subnet>: Subnet ID, address, or name to list"
@@ -23,12 +24,14 @@ usage() {
 source "${HOME}"/.aws/set-aws-variables.sh
 
 # Check and extract optional arguments.
+quiet=false
 one_per_line=false
 long_listing=false
 # REGION=(default value comes from set-aws-variable.sh)
 vpc=
-while getopts "1lr:v:" arg; do
+while getopts "q1lr:v:" arg; do
     case "${arg}" in
+        q) quiet=true ;;
         1) one_per_line=true ;;
         l) long_listing=true ;;
         r) REGION="${OPTARG}" ;;
@@ -39,27 +42,27 @@ done
 shift `expr ${OPTIND} - 1`
 
 # Get subnet name/address argument if specified.
-# TODO: Make sure everything works if the subnet name contains spaces.
+# NOTE: The name may contain spaces if quoted on the command line.
 [ $# -gt 1 ] && usage
 subnet="$1"
 
 # Check to see if the region or VPC were specified incorrectly.
 [ -z "${REGION}" ] && usage
 case "${REGION}" in 
-    -1|-l|-v)
+    -q|-1|-l|-v)
         echo "${fn}: -r option missing region"
         usage
         ;;
 esac
 case "${vpc}" in 
-    -1|-l|-r)
+    -q|-1|-l|-r)
         echo "${fn}: -v option missing VPC"
         usage
         ;;
 esac
 
 # If a VPC was specified, find it by ID, address, or name.
-# NOTE: A search by name may return multiple VPC IDs.
+# NOTE: A search by name or address may return multiple VPC IDs.
 if [ -z "${vpc}" ]; then
     vpc_ids=
 else
@@ -71,7 +74,7 @@ else
         [ ! -z "${vpc_ids}" ] && break
     done
     if [ -z "${vpc_ids}" ]; then
-        echo >&2 "${fn}: ${vpc} not found"
+        [ "${quiet}" = false ] && echo >&2 "${fn}: ${vpc} not found"
         exit 1
     fi
 fi
@@ -135,7 +138,7 @@ if [ -z "${subnet}" ]; then
     fi
 else
     # Try to find the subnet by ID, address, or name.
-    # NOTE: A search by name may return multiple subnet IDs.
+    # NOTE: A search by address or name may return multiple subnet IDs.
     if [ -z "${vpc_ids}" ]; then
         for subnet_designator in subnet-id cidr tag:Name; do
             subnet_ids=`aws ec2 describe-subnets --no-paginate --output text \
@@ -164,7 +167,7 @@ else
         done
     fi
     if [ -z "${subnet_ids}" ]; then
-        echo >&2 "${fn}: ${subnet} not found"
+        [ "${quiet}" = false ] && echo >&2 "${fn}: ${subnet} not found"
         exit 1
     fi
 

@@ -8,10 +8,11 @@ dir=`dirname $0`
 
 # Print usage information if needed.
 usage() {
-    echo >&2 "Usage: ${fn} [-1] [-l] [-r <region>] [<vpc>]"
+    echo >&2 "Usage: ${fn} [-q] [-1] [-l] [-r <region>] [<vpc>]"
+    echo >&2 "-q: run quietly without unneeded messages"
     echo >&2 "-1: display VPC ids one per line"
-    echo >&2 "-l: also display address and name (implies -1)"
-    echo >&2 "-r <region>: AWS region"
+    echo >&2 "-l: also display VPC's address and name (implies -1)"
+    echo >&2 "-r <region>: AWS region to search"
     echo >&2 "<vpc>: VPC ID, address, or name to list"
     exit 1
 }
@@ -22,12 +23,14 @@ usage() {
 source "${HOME}"/.aws/set-aws-variables.sh
 
 # Check and extract optional arguments.
+quiet=false
 one_per_line=false
 long_listing=false
 # Default value of REGION comes from set-aws-variable.sh.
 vpc=
-while getopts "1lr:" arg; do
+while getopts "q1lr:" arg; do
     case "${arg}" in
+        q) quiet=true ;;
         1) one_per_line=true ;;
         l) long_listing=true ;;
         r) REGION="${OPTARG}" ;;
@@ -42,7 +45,13 @@ shift `expr ${OPTIND} - 1`
 vpc="$1"
 
 # Check to see if the region was specified incorrectly.
-[ -z "${REGION}" -o "${REGION}" = "-1" -o "${REGION}" = "-l" ] && usage
+[ -z "${REGION}" ] && usage
+case "${REGION}" in 
+    -q|-1|-l|-v)
+        echo "${fn}: -r option missing region"
+        usage
+        ;;
+esac
 
 # If no <vpc> argument then list all VPCs, optionally displaying one
 # per line and extra info. Otherwise look for the specified VPC(s) by
@@ -65,7 +74,7 @@ if [ -z "${vpc}" ]; then
     fi
 else
     # Try to find the VPC by ID, CIDR-format address, or name.
-    # NOTE: A search by name may return multiple VPC IDs.
+    # NOTE: A search by address or name may return multiple VPC IDs.
     for vpc_designator in vpc-id cidr tag:Name; do
         vpc_ids=`aws ec2 describe-vpcs --no-paginate --output text \
             --region "${REGION}" \
@@ -74,7 +83,7 @@ else
         [ ! -z "${vpc_ids}" ] && break
     done
     if [ -z "${vpc_ids}" ]; then
-        echo >&2 "${fn}: ${vpc} not found"
+        [ "${quiet}" = false ] && echo >&2 "${fn}: ${vpc} not found"
         exit 1
     fi
 

@@ -7,7 +7,9 @@ Utility scripts for working with AWS using the AWS CLI.
 * `list_subnet_aws.sh`: List subnet IDs and (optionally) subnet
   addresses and names.
 * `create_vpc_aws.sh`: Create a VPC and optionally give it a name
+* `create_subnet_aws.sh`: Create a subnet and optionally give it a name
 * `delete_vpc_aws.sh`: Delete a VPC by ID, address, or name.
+* `delete_subnet_aws.sh`: Delete a subnet by ID, address, or name.
 
 Examples of how to use these scripts:
 
@@ -43,6 +45,12 @@ Examples of how to use these scripts:
 
     # Delete the VPC vpc-020f5bab08c0d3f43 in us-west-1 region
     sh delete_vpc_aws.sh -r us-west-1 vpc-020f5bab08c0d3f43
+
+    # Create a subnet 10.192.1.0/24 in "My VPC" with name "My Subnet"
+    sh create_vpc_aws.sh "My VPC" 10.192.1.0/24 "My Subnet"
+
+    # Delete the subnet 10.128.1.0/24 in us-west-1 region
+    sh delete_vpc_aws.sh -r us-west-1 10.128.1.0/24
 
 As implied above, the scripts allow VPCs and subnets to be identified
 by ID, address, or name (i.e., the value of the "Name" tag). The

@@ -6,9 +6,6 @@
 fn=`basename $0`
 dir=`dirname $0`
 
-# Get variables needed for AWS access to our region/VPC/subnets.
-source ${HOME}/.aws/set-aws-variables.sh
-
 # Print usage information if needed.
 usage() {
     echo >&2 "Usage: ${fn} [-q] [-r region] <cidr> [<name>]"

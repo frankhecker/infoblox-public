@@ -55,12 +55,11 @@ if [ ! -z "${existing}" ]; then
     exit 1
 fi
 
-# If VPCs with specified name already exist, output IDs.
+# If other VPCs with specified name exist, do not create this one.
 if [ ! -z "${vpc_name}" ]; then
     existing=`sh "${dir}"/list_vpc_aws.sh -q -r "${REGION}" "${vpc_name}"`
     if [ ! -z "${existing}" ]; then
-	[ "${quiet}" = false ] && echo >&2 "${fn}: ${vpc_name}: VPC exists"
-	echo "${existing}"
+	echo >&2 "${fn}: ${vpc_cidr}: not created, name is same as ${existing}"
 	exit 1
     fi
 fi

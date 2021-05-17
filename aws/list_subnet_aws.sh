@@ -48,13 +48,13 @@ subnet="$1"
 
 # Check to see if the region or VPC were specified incorrectly.
 [ -z "${REGION}" ] && usage
-case "${REGION}" in 
+case "${REGION}" in
     -q|-1|-l|-v)
         echo "${fn}: -r option missing region"
         usage
         ;;
 esac
-case "${vpc}" in 
+case "${vpc}" in
     -q|-1|-l|-r)
         echo "${fn}: -v option missing VPC"
         usage

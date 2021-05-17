@@ -38,7 +38,7 @@ subnet=$1
 
 # Check to see if the region was specified incorrectly.
 [ -z "${REGION}" ] && usage
-case "${REGION}" in 
+case "${REGION}" in
     -q)
         echo "${fn}: -r option missing region"
         usage
@@ -55,11 +55,11 @@ if [ -z "${existing}" ]; then
 fi
 case "${existing}" in
     *\ *)
-	echo >&2 "${fn}: ${subnet}: multiple subnets with this address/name, use ID"
-	echo "${existing}"
-	exit 1
-	;;
+        echo >&2 "${fn}: ${subnet}: multiple subnets with this address/name, use ID"
+        echo "${existing}"
+        exit 1
+        ;;
     *)
-	aws ec2 delete-subnet --region "${REGION}" --subnet-id "${existing}"
-	;;
+        aws ec2 delete-subnet --region "${REGION}" --subnet-id "${existing}"
+        ;;
 esac

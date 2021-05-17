@@ -46,7 +46,7 @@ vpc="$1"
 
 # Check to see if the region was specified incorrectly.
 [ -z "${REGION}" ] && usage
-case "${REGION}" in 
+case "${REGION}" in
     -q|-1|-l|-v)
         echo "${fn}: -r option missing region"
         usage

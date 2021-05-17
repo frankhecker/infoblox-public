@@ -42,7 +42,7 @@ subnet_name=$3
 
 # Check to see if the region was specified incorrectly.
 [ -z "${REGION}" ] && usage
-case "${REGION}" in 
+case "${REGION}" in
     -q)
         echo "${fn}: -r option missing region"
         usage
@@ -59,10 +59,10 @@ fi
 # If multiple VPCs exist, remind user to use an ID to specify the VPC.
 case "${vpc_id}" in
     *\ *)
-	echo >&2 "${fn}: ${vpc}: multiple VPCs with this address/name, use ID"
-	echo >&2 "${vpc_id}"
-	exit 1
-	;;
+        echo >&2 "${fn}: ${vpc}: multiple VPCs with this address/name, use ID"
+        echo >&2 "${vpc_id}"
+        exit 1
+        ;;
 esac
 
 # If subnets with specified address already exist, output IDs.
@@ -77,25 +77,25 @@ fi
 if [ ! -z "${subnet_name}" ]; then
     existing=`sh "${dir}"/list_subnet_aws.sh -q -r "${REGION}" -v "${vpc_id}" "${subnet_name}"`
     if [ ! -z "${existing}" ]; then
-	echo >&2 "${fn}: ${subnet_cidr}: not created, name is same as ${existing}"
-	exit 1
+        echo >&2 "${fn}: ${subnet_cidr}: not created, name is same as ${existing}"
+        exit 1
     fi
 fi
 
 # Create the subnet.
 if [ -z "${subnet_name}" ]; then
     aws ec2 create-subnet \
-	--no-paginate --output text \
-	--region "${REGION}" \
-	--vpc-id "${vpc_id}" \
-	--cidr-block "${subnet_cidr}" \
-	--query 'Subnet.SubnetId'
+        --no-paginate --output text \
+        --region "${REGION}" \
+        --vpc-id "${vpc_id}" \
+        --cidr-block "${subnet_cidr}" \
+        --query 'Subnet.SubnetId'
 else
     aws ec2 create-subnet \
-	--no-paginate --output text \
-	--region "${REGION}" \
-	--vpc-id "${vpc_id}" \
-	--cidr-block "${subnet_cidr}" \
-	--tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=${subnet_name}},{Key=creator,Value=${CREATOR}}]" \
-	--query 'Subnet.SubnetId'
+        --no-paginate --output text \
+        --region "${REGION}" \
+        --vpc-id "${vpc_id}" \
+        --cidr-block "${subnet_cidr}" \
+        --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=${subnet_name}},{Key=creator,Value=${CREATOR}}]" \
+        --query 'Subnet.SubnetId'
 fi

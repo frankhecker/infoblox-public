@@ -40,7 +40,7 @@ vpc_name=$2
 
 # Check to see if the region was specified incorrectly.
 [ -z "${REGION}" ] && usage
-case "${REGION}" in 
+case "${REGION}" in
     -q)
         echo "${fn}: -r option missing region"
         usage
@@ -59,23 +59,23 @@ fi
 if [ ! -z "${vpc_name}" ]; then
     existing=`sh "${dir}"/list_vpc_aws.sh -q -r "${REGION}" "${vpc_name}"`
     if [ ! -z "${existing}" ]; then
-	echo >&2 "${fn}: ${vpc_cidr}: not created, name is same as ${existing}"
-	exit 1
+        echo >&2 "${fn}: ${vpc_cidr}: not created, name is same as ${existing}"
+        exit 1
     fi
 fi
 
 # Create the VPC.
 if [ -z "${vpc_name}" ]; then
     aws ec2 create-vpc \
-	--no-paginate --output text \
-	--region "${REGION}" \
-	--cidr-block "${vpc_cidr}" \
-	--query 'Vpc.VpcId'
+        --no-paginate --output text \
+        --region "${REGION}" \
+        --cidr-block "${vpc_cidr}" \
+        --query 'Vpc.VpcId'
 else
     aws ec2 create-vpc \
-	--no-paginate --output text \
-	--region "${REGION}" \
-	--cidr-block "${vpc_cidr}" \
-	--tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=${vpc_name}},{Key=creator,Value=${CREATOR}}]" \
-	--query 'Vpc.VpcId'
+        --no-paginate --output text \
+        --region "${REGION}" \
+        --cidr-block "${vpc_cidr}" \
+        --tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=${vpc_name}},{Key=creator,Value=${CREATOR}}]" \
+        --query 'Vpc.VpcId'
 fi

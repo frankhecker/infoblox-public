@@ -6,12 +6,17 @@ Utility scripts for working with AWS using the AWS CLI.
   names.
 * `list_subnet_aws.sh`: List subnet IDs and (optionally) subnet
   addresses and names.
-* `create_vpc_aws.sh`: Create a VPC and optionally give it a name
-* `create_subnet_aws.sh`: Create a subnet and optionally give it a name
+* `create_vpc_aws.sh`: Create a VPC and optionally give it a name.
+* `create_subnet_aws.sh`: Create a subnet and optionally give it a
+  name.
 * `delete_vpc_aws.sh`: Delete a VPC by ID, address, or name.
 * `delete_subnet_aws.sh`: Delete a subnet by ID, address, or name.
 * `list_igw_aws.sh`: List Internet gateway IDs and (optionally) their
   names and the VPCs they're attached to.
+* `create_igw_aws.sh`: Create an Internet gateway, attach it to a VPC,
+  and optionally give it a name
+* `delete_igw_aws.sh`: Detach an Internet gateway from its VPC (if
+  attached) and delete it.
 
 Examples of how to use these scripts:
 
@@ -59,6 +64,12 @@ Examples of how to use these scripts:
 
     # List ID of Internet gateway attached to VPC 10.192.16.0/20.
     list_igw_aws.sh -v 10.192.16.0/20
+
+    # Create an Internet gateway "Test IGW" and attach it to VPC my-vpc.
+    create_igw_aws.sh my-vpc "Test IGW"
+
+    # Detach the Internet gateway "Test IGW" from its VPC and delete it.
+    delete_igw_aws.sh "Test IGW"
 
 As implied above, the scripts allow VPCs, subnets, and gateways to be
 identified by ID, name (i.e., the value of the "Name" tag), or address

@@ -13,7 +13,7 @@ usage() {
     echo >&2 "-r <region>: AWS region"
     echo >&2 "<vpc>: VPC ID, address, or name"
     echo >&2 "<cidr>: subnet CIDR-format address"
-    echo >&2 "<name>: VPC name"
+    echo >&2 "<name>: subnet name"
     exit 1
 }
 

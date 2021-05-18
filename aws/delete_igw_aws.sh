@@ -52,7 +52,7 @@ if [ -z "${existing}" ]; then
 fi
 case "${existing}" in
     *\ *)
-        echo >&2 "${fn}: ${gateway}: multiple gateways with this name, use ID"
+        echo >&2 "${fn}: ${igw}: multiple gateways with this name, use ID"
         echo "${existing}"
         exit 1
         ;;

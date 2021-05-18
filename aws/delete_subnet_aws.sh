@@ -15,18 +15,15 @@ usage() {
     exit 1
 }
 
-# Get added variables needed for AWS access, including default region.
-# NOTE: Credentials should be in the standard AWS-specified locations.
-# TODO: Remove the need for this extra file if possible.
-source "${HOME}"/.aws/set-aws-variables.sh
+# Get default region.
+region=`aws configure list | grep '^ *region' | awk '{ print $2 }'`
 
 # Check and extract optional arguments.
-# REGION=(default value of REGION comes from set-aws-variable.sh)
 quiet=false
 while getopts "qr:" arg; do
     case "${arg}" in
         q) quiet=true ;;
-        r) REGION="${OPTARG}" ;;
+        r) region="${OPTARG}" ;;
         *) usage ;;
     esac
 done
@@ -37,8 +34,8 @@ shift `expr ${OPTIND} - 1`
 subnet=$1
 
 # Check to see if the region was specified incorrectly.
-[ -z "${REGION}" ] && usage
-case "${REGION}" in
+[ -z "${region}" ] && usage
+case "${region}" in
     -q)
         echo "${fn}: -r option missing region"
         usage
@@ -48,7 +45,7 @@ esac
 # If no subnet with this ID, address, or name exists then we are done.
 # If multiple subnets exist, remind user to use an ID to specify it.
 # Otherwise delete the subnet.
-existing=`sh "${dir}"/list_subnet_aws.sh -q -r "${REGION}" "${subnet}"`
+existing=`sh "${dir}"/list_subnet_aws.sh -q -r "${region}" "${subnet}"`
 if [ -z "${existing}" ]; then
     [ "${quiet}" = false ] && echo >&2 "${fn}: ${subnet}: subnet does not exist"
     exit 1
@@ -60,6 +57,6 @@ case "${existing}" in
         exit 1
         ;;
     *)
-        aws ec2 delete-subnet --region "${REGION}" --subnet-id "${existing}"
+        aws ec2 delete-subnet --region "${region}" --subnet-id "${existing}"
         ;;
 esac

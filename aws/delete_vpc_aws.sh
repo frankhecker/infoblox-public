@@ -15,18 +15,15 @@ usage() {
     exit 1
 }
 
-# Get added variables needed for AWS access, including default region.
-# NOTE: Credentials should be in the standard AWS-specified locations.
-# TODO: Remove the need for this extra file if possible.
-source "${HOME}"/.aws/set-aws-variables.sh
+# Get default region.
+region=`aws configure list | grep '^ *region' | awk '{ print $2 }'`
 
 # Check and extract optional arguments.
-# REGION=(default value of REGION comes from set-aws-variable.sh)
 quiet=false
 while getopts "qr:" arg; do
     case "${arg}" in
         q) quiet=true ;;
-        r) REGION="${OPTARG}" ;;
+        r) region="${OPTARG}" ;;
         *) usage ;;
     esac
 done
@@ -37,8 +34,8 @@ shift `expr ${OPTIND} - 1`
 vpc=$1
 
 # Check to see if the region was specified incorrectly.
-[ -z "${REGION}" ] && usage
-case "${REGION}" in
+[ -z "${region}" ] && usage
+case "${region}" in
     -q)
         echo "${fn}: -r option missing region"
         usage
@@ -48,7 +45,7 @@ esac
 # If no VPC with this ID, address, or name exists then we are done.
 # If multiple VPCs exist, remind user to use an ID to specify the VPC.
 # Otherwise delete the VPC.
-existing=`sh "${dir}"/list_vpc_aws.sh -q -r "${REGION}" "${vpc}"`
+existing=`sh "${dir}"/list_vpc_aws.sh -q -r "${region}" "${vpc}"`
 if [ -z "${existing}" ]; then
     [ "${quiet}" = false ] && echo >&2 "${fn}: ${vpc}: VPC does not exist"
     exit 1
@@ -60,6 +57,6 @@ case "${existing}" in
         exit 1
         ;;
     *)
-        aws ec2 delete-vpc --region "${REGION}" --vpc-id "${existing}"
+        aws ec2 delete-vpc --region "${region}" --vpc-id "${existing}"
         ;;
 esac

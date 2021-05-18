@@ -18,23 +18,20 @@ usage() {
     exit 1
 }
 
-# Get added variables needed for AWS access, including default region.
-# NOTE: Credentials should be in the standard AWS-specified locations.
-# TODO: Remove the need for this extra file if possible.
-source "${HOME}"/.aws/set-aws-variables.sh
+# Get default region.
+region=`aws configure list | grep '^ *region' | awk '{ print $2 }'`
 
 # Check and extract optional arguments.
 quiet=false
 one_per_line=false
 long_listing=false
-# REGION=(default value comes from set-aws-variable.sh)
 vpc=
 while getopts "q1lr:v:" arg; do
     case "${arg}" in
         q) quiet=true ;;
         1) one_per_line=true ;;
         l) long_listing=true ;;
-        r) REGION="${OPTARG}" ;;
+        r) region="${OPTARG}" ;;
         v) vpc="${OPTARG}" ;;
         *) usage ;;
     esac
@@ -47,8 +44,8 @@ shift `expr ${OPTIND} - 1`
 subnet="$1"
 
 # Check to see if the region or VPC were specified incorrectly.
-[ -z "${REGION}" ] && usage
-case "${REGION}" in
+[ -z "${region}" ] && usage
+case "${region}" in
     -q|-1|-l|-v)
         echo "${fn}: -r option missing region"
         usage
@@ -68,7 +65,7 @@ if [ -z "${vpc}" ]; then
 else
     for vpc_designator in vpc-id cidr tag:Name; do
         vpc_ids=`aws ec2 describe-vpcs --no-paginate --output text \
-            --region "${REGION}" \
+            --region "${region}" \
             --filters "Name=${vpc_designator},Values=${vpc}" \
             --query 'Vpcs[].VpcId'`
         [ ! -z "${vpc_ids}" ] && break
@@ -88,12 +85,12 @@ if [ -z "${subnet}" ]; then
     if [ "${long_listing}" = true ]; then
         if [ -z "${vpc_ids}" ]; then
             aws ec2 describe-subnets --no-paginate --output text \
-                --region "${REGION}" \
+                --region "${region}" \
                 --query 'Subnets[].[SubnetId, CidrBlock, VpcId, (Tags[?Key==`Name`].Value)[0]]'
         else
             for vpc_id in ${vpc_ids}; do
                 aws ec2 describe-subnets --no-paginate --output text \
-                    --region "${REGION}" \
+                    --region "${region}" \
                     --filters "Name=vpc-id,Values=${vpc_id}" \
                     --query 'Subnets[].[SubnetId, VpcId, CidrBlock, (Tags[?Key==`Name`].Value)[0]]'
             done
@@ -101,13 +98,13 @@ if [ -z "${subnet}" ]; then
     elif [ "${one_per_line}" = true ]; then
         if [ -z "${vpc_ids}" ]; then
             aws ec2 describe-subnets --no-paginate --output text \
-                --region "${REGION}" \
+                --region "${region}" \
                 --query 'Subnets[].SubnetId' \
             | tr '\t' '\n'
         else
             for vpc_id in ${vpc_ids}; do
                 aws ec2 describe-subnets --no-paginate --output text \
-                    --region "${REGION}" \
+                    --region "${region}" \
                     --filters "Name=vpc-id,Values=${vpc_id}" \
                     --query 'Subnets[].SubnetId' \
                 | tr '\t' '\n'
@@ -116,14 +113,14 @@ if [ -z "${subnet}" ]; then
     else
         if [ -z "${vpc_ids}" ]; then
             aws ec2 describe-subnets --no-paginate --output text \
-                --region "${REGION}" \
+                --region "${region}" \
                 --query 'Subnets[].SubnetId' \
             | tr '\t' ' '
         else
             subnet_ids=
             for vpc_id in ${vpc_ids}; do
                 new_subnet_ids=`aws ec2 describe-subnets --no-paginate --output text \
-                    --region "${REGION}" \
+                    --region "${region}" \
                     --filters "Name=vpc-id,Values=${vpc_id}" \
                     --query 'Subnets[].SubnetId' \
                 | tr '\t' ' '`
@@ -142,7 +139,7 @@ else
     if [ -z "${vpc_ids}" ]; then
         for subnet_designator in subnet-id cidr tag:Name; do
             subnet_ids=`aws ec2 describe-subnets --no-paginate --output text \
-                            --region "${REGION}" \
+                            --region "${region}" \
                             --filters "Name=${subnet_designator},Values=${subnet}" \
                             --query 'Subnets[].SubnetId'`
             [ ! -z "${subnet_ids}" ] && break
@@ -152,7 +149,7 @@ else
         for vpc_id in ${vpc_ids}; do
             for subnet_designator in subnet-id cidr tag:Name; do
                 new_subnet_ids=`aws ec2 describe-subnets --no-paginate --output text \
-                        --region "${REGION}" \
+                        --region "${region}" \
                         --filters \
                             "Name=vpc-id,Values=${vpc_id}" \
                             "Name=${subnet_designator},Values=${subnet}" \
@@ -175,7 +172,7 @@ else
     if [ "${long_listing}" = true ]; then
         # NOTE: --subnet-ids allows multiple subnet IDs to be specified.
         aws ec2 describe-subnets --no-paginate --output text \
-            --region "${REGION}" \
+            --region "${region}" \
             --subnet-ids ${subnet_ids} \
             --query 'Subnets[].[SubnetId, VpcId, CidrBlock, (Tags[?Key==`Name`].Value)[0]]'
     elif [ "${one_per_line}" = true ]; then

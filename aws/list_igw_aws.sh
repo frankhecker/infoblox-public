@@ -18,23 +18,20 @@ usage() {
     exit 1
 }
 
-# Get added variables needed for AWS access, including default region.
-# NOTE: Credentials should be in the standard AWS-specified locations.
-# TODO: Remove the need for this extra file if possible.
-source "${HOME}"/.aws/set-aws-variables.sh
+# Get default region.
+region=`aws configure list | grep '^ *region' | awk '{ print $2 }'`
 
 # Check and extract optional arguments.
 quiet=false
 one_per_line=false
 long_listing=false
-# REGION=(default value comes from set-aws-variable.sh)
 vpc=
 while getopts "q1lar:v:" arg; do
     case "${arg}" in
         q) quiet=true ;;
         1) one_per_line=true ;;
         l) long_listing=true ;;
-        r) REGION="${OPTARG}" ;;
+        r) region="${OPTARG}" ;;
         v) vpc="${OPTARG}" ;;
         *) usage ;;
     esac
@@ -47,8 +44,8 @@ shift `expr ${OPTIND} - 1`
 igw="$1"
 
 # Check to see if the region or VPC were specified incorrectly.
-[ -z "${REGION}" ] && usage
-case "${REGION}" in
+[ -z "${region}" ] && usage
+case "${region}" in
     -q|-1|-l|-v)
         echo >&2 "${fn}: -r option missing region"
         usage
@@ -68,7 +65,7 @@ if [ -z "${vpc}" ]; then
 else
     for vpc_designator in vpc-id cidr tag:Name; do
         vpc_ids=`aws ec2 describe-vpcs --no-paginate --output text \
-            --region "${REGION}" \
+            --region "${region}" \
             --filters "Name=${vpc_designator},Values=${vpc}" \
             --query 'Vpcs[].VpcId'`
         [ ! -z "${vpc_ids}" ] && break
@@ -92,14 +89,14 @@ if [ -z "${igw}" ]; then
             # string and then use sed to produce the desired output.
             aws ec2 describe-internet-gateways \
                 --no-paginate --output text \
-                --region "${REGION}" \
+                --region "${region}" \
                 --query 'InternetGateways[].[InternetGatewayId, to_string(Attachments[].VpcId), (Tags[?Key==`Name`].Value)[0]]' \
             | sed -e 's/\[\]/None/' -e 's/\["//' -e 's/"\]//'
         else
             for vpc_id in ${vpc_ids}; do
                 aws ec2 describe-internet-gateways \
                     --no-paginate --output text \
-                    --region "${REGION}" \
+                    --region "${region}" \
                     --filters "Name=attachment.vpc-id,Values=${vpc_id}" \
                     --query 'InternetGateways[].[InternetGatewayId, to_string(Attachments[].VpcId), (Tags[?Key==`Name`].Value)[0]]' \
                 | sed -e 's/\[\]/None/' -e 's/\["//' -e 's/"\]//'
@@ -109,14 +106,14 @@ if [ -z "${igw}" ]; then
         if [ -z "${vpc_ids}" ]; then
             aws ec2 describe-internet-gateways \
                 --no-paginate --output text \
-                --region "${REGION}" \
+                --region "${region}" \
                 --query 'InternetGateways[].InternetGatewayId' \
             | tr '\t' '\n'
         else
             for vpc_id in ${vpc_ids}; do
                 aws ec2 describe-internet-gateways \
                     --no-paginate --output text \
-                    --region "${REGION}" \
+                    --region "${region}" \
                     --filters "Name=attachment.vpc-id,Values=${vpc_id}" \
                     --query 'InternetGateways[].InternetGatewayId' \
                 | tr '\t' '\n'
@@ -128,7 +125,7 @@ if [ -z "${igw}" ]; then
             # List all Internet gateway IDs.
             aws ec2 describe-internet-gateways \
                 --no-paginate --output text \
-                --region "${REGION}" \
+                --region "${region}" \
                 --query 'InternetGateways[].InternetGatewayId' \
             | tr '\t' ' '
         else
@@ -137,7 +134,7 @@ if [ -z "${igw}" ]; then
             for vpc_id in ${vpc_ids}; do
                 new_igw_ids=`aws ec2 describe-internet-gateways \
                     --no-paginate --output text \
-                    --region "${REGION}" \
+                    --region "${region}" \
                     --filters "Name=attachment.vpc-id,Values=${vpc_id}" \
                     --query 'InternetGateways[].InternetGatewayId' \
                 | tr '\t' ' '`
@@ -157,7 +154,7 @@ else
         for igw_designator in internet-gateway-id tag:Name; do
             igw_ids=`aws ec2 describe-internet-gateways \
                 --no-paginate --output text \
-                --region "${REGION}" \
+                --region "${region}" \
                 --filters "Name=${igw_designator},Values=${igw}" \
                 --query 'InternetGateways[].InternetGatewayId'`
             [ ! -z "${igw_ids}" ] && break
@@ -168,7 +165,7 @@ else
             for igw_designator in internet-gateway-id tag:Name; do
                 new_igw_ids=`aws ec2 describe-internet-gateways \
                     --no-paginate --output text \
-                    --region "${REGION}" \
+                    --region "${region}" \
                     --filters \
                         "Name=${igw_designator},Values=${igw}" \
                         "Name=attachment.vpc-id,Values=${vpc_id}" \
@@ -192,7 +189,7 @@ else
         # NOTE: --internet-gateway-ids allows multiple IDs to be specified.
         aws ec2 describe-internet-gateways \
             --no-paginate --output text \
-            --region "${REGION}" \
+            --region "${region}" \
             --internet-gateway-ids ${igw_ids} \
             --query 'InternetGateways[].[InternetGatewayId, to_string(Attachments[].VpcId), (Tags[?Key==`Name`].Value)[0]]' \
         | sed -e 's/\[\]/None/' -e 's/\["//' -e 's/"\]//'

@@ -16,18 +16,16 @@ usage() {
     exit 1
 }
 
-# Get added variables needed for AWS access, including default region.
-# NOTE: Credentials should be in the standard AWS-specified locations.
-# TODO: Remove the need for this extra file if possible.
-source "${HOME}"/.aws/set-aws-variables.sh
+# Get default region and creator ID.
+region=`aws configure list | grep '^ *region' | awk '{ print $2 }'`
+creator=`whoami`
 
 # Check and extract optional arguments.
-# REGION=(default value of REGION comes from set-aws-variable.sh)
 quiet=false
 while getopts "qr:" arg; do
     case "${arg}" in
         q) quiet=true ;;
-        r) REGION="${OPTARG}" ;;
+        r) region="${OPTARG}" ;;
         *) usage ;;
     esac
 done
@@ -39,8 +37,8 @@ vpc_cidr=$1
 vpc_name=$2
 
 # Check to see if the region was specified incorrectly.
-[ -z "${REGION}" ] && usage
-case "${REGION}" in
+[ -z "${region}" ] && usage
+case "${region}" in
     -q)
         echo "${fn}: -r option missing region"
         usage
@@ -48,7 +46,7 @@ case "${REGION}" in
 esac
 
 # If VPCs with specified address already exist, output IDs.
-existing=`sh "${dir}"/list_vpc_aws.sh -q -r "${REGION}" "${vpc_cidr}"`
+existing=`sh "${dir}"/list_vpc_aws.sh -q -r "${region}" "${vpc_cidr}"`
 if [ ! -z "${existing}" ]; then
     [ "${quiet}" = false ] && echo >&2 "${fn}: ${vpc_cidr}: VPC exists"
     echo "${existing}"
@@ -57,7 +55,7 @@ fi
 
 # If other VPCs with specified name exist, do not create this one.
 if [ ! -z "${vpc_name}" ]; then
-    existing=`sh "${dir}"/list_vpc_aws.sh -q -r "${REGION}" "${vpc_name}"`
+    existing=`sh "${dir}"/list_vpc_aws.sh -q -r "${region}" "${vpc_name}"`
     if [ ! -z "${existing}" ]; then
         echo >&2 "${fn}: ${vpc_cidr}: not created, name is same as ${existing}"
         exit 1
@@ -68,14 +66,14 @@ fi
 if [ -z "${vpc_name}" ]; then
     aws ec2 create-vpc \
         --no-paginate --output text \
-        --region "${REGION}" \
+        --region "${region}" \
         --cidr-block "${vpc_cidr}" \
         --query 'Vpc.VpcId'
 else
     aws ec2 create-vpc \
         --no-paginate --output text \
-        --region "${REGION}" \
+        --region "${region}" \
         --cidr-block "${vpc_cidr}" \
-        --tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=${vpc_name}},{Key=creator,Value=${CREATOR}}]" \
+        --tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=${vpc_name}},{Key=creator,Value=${creator}}]" \
         --query 'Vpc.VpcId'
 fi

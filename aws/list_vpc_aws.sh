@@ -17,23 +17,20 @@ usage() {
     exit 1
 }
 
-# Get added variables needed for AWS access, including default region.
-# NOTE: Credentials should be in the standard AWS-specified locations.
-# TODO: Remove the need for this extra file if possible.
-source "${HOME}"/.aws/set-aws-variables.sh
+# Get default region.
+region=`aws configure list | grep '^ *region' | awk '{ print $2 }'`
 
 # Check and extract optional arguments.
 quiet=false
 one_per_line=false
 long_listing=false
-# Default value of REGION comes from set-aws-variable.sh.
 vpc=
 while getopts "q1lr:" arg; do
     case "${arg}" in
         q) quiet=true ;;
         1) one_per_line=true ;;
         l) long_listing=true ;;
-        r) REGION="${OPTARG}" ;;
+        r) region="${OPTARG}" ;;
         *) usage ;;
     esac
 done
@@ -45,8 +42,8 @@ shift `expr ${OPTIND} - 1`
 vpc="$1"
 
 # Check to see if the region was specified incorrectly.
-[ -z "${REGION}" ] && usage
-case "${REGION}" in
+[ -z "${region}" ] && usage
+case "${region}" in
     -q|-1|-l|-v)
         echo "${fn}: -r option missing region"
         usage
@@ -59,16 +56,16 @@ esac
 if [ -z "${vpc}" ]; then
     if [ "${long_listing}" = true ]; then
         aws ec2 describe-vpcs --no-paginate --output text \
-            --region "${REGION}" \
+            --region "${region}" \
             --query 'Vpcs[].[VpcId, CidrBlock, (Tags[?Key==`Name`].Value)[0]]'
     elif [ "${one_per_line}" = true ]; then
         aws ec2 describe-vpcs --no-paginate --output text \
-            --region "${REGION}" \
+            --region "${region}" \
             --query 'Vpcs[].VpcId' \
         | tr '\t' '\n'
     else
         aws ec2 describe-vpcs --no-paginate --output text \
-            --region "${REGION}" \
+            --region "${region}" \
             --query 'Vpcs[].VpcId' \
         | tr '\t' ' '
     fi
@@ -77,7 +74,7 @@ else
     # NOTE: A search by address or name may return multiple VPC IDs.
     for vpc_designator in vpc-id cidr tag:Name; do
         vpc_ids=`aws ec2 describe-vpcs --no-paginate --output text \
-            --region "${REGION}" \
+            --region "${region}" \
             --filters "Name=${vpc_designator},Values=${vpc}" \
             --query 'Vpcs[].VpcId'`
         [ ! -z "${vpc_ids}" ] && break
@@ -91,7 +88,7 @@ else
     if [ "${long_listing}" = true ]; then
         # NOTE: --vpc-ids allows multiple VPC IDs to be specified.
         aws ec2 describe-vpcs --no-paginate --output text \
-            --region "${REGION}" \
+            --region "${region}" \
             --vpc-ids ${vpc_ids} \
             --query 'Vpcs[].[VpcId, CidrBlock, (Tags[?Key==`Name`].Value)[0]]'
     elif [ "${one_per_line}" = true ]; then

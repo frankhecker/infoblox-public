@@ -16,18 +16,16 @@ usage() {
     exit 1
 }
 
-# Get added variables needed for AWS access, including default region.
-# NOTE: Credentials should be in the standard AWS-specified locations.
-# TODO: Remove the need for this extra file if possible.
-source "${HOME}"/.aws/set-aws-variables.sh
+# Get default region and creator ID.
+region=`aws configure list | grep '^ *region' | awk '{ print $2 }'`
+creator=`whoami`
 
 # Check and extract optional arguments.
-# REGION=(default value of REGION comes from set-aws-variable.sh)
 quiet=false
 while getopts "qr:" arg; do
     case "${arg}" in
         q) quiet=true ;;
-        r) REGION="${OPTARG}" ;;
+        r) region="${OPTARG}" ;;
         *) usage ;;
     esac
 done
@@ -39,8 +37,8 @@ vpc=$1
 name=$2
 
 # Check to see if the region was specified incorrectly.
-[ -z "${REGION}" ] && usage
-case "${REGION}" in
+[ -z "${region}" ] && usage
+case "${region}" in
     -q)
         echo "${fn}: -r option missing region"
         usage
@@ -48,7 +46,7 @@ case "${REGION}" in
 esac
 
 # Look for the VPC ID to which the gateway should be attached.
-vpc_id=`sh "${dir}"/list_vpc_aws.sh -q -r "${REGION}" "${vpc}"`
+vpc_id=`sh "${dir}"/list_vpc_aws.sh -q -r "${region}" "${vpc}"`
 if [ -z "${vpc_id}" ]; then
     echo >&2 "${fn}: ${vpc}: VPC not found"
     exit 1
@@ -64,7 +62,7 @@ case "${vpc_id}" in
 esac
 
 # If Internet gateway exists and is attached to VPC, output ID.
-existing=`sh "${dir}"/list_igw_aws.sh -q -r "${REGION}" -v "${vpc_id}"`
+existing=`sh "${dir}"/list_igw_aws.sh -q -r "${region}" -v "${vpc_id}"`
 if [ ! -z "${existing}" ]; then
     [ "${quiet}" = false ] && echo >&2 "${fn}: ${vpc_id}: Internet gateway already attached to VPC"
     echo "${existing}"
@@ -73,7 +71,7 @@ fi
 
 # If other gateways with specified name exist, do not create this one.
 if [ ! -z "${name}" ]; then
-    existing=`sh "${dir}"/list_igw_aws.sh -q -r "${REGION}" "${name}"`
+    existing=`sh "${dir}"/list_igw_aws.sh -q -r "${region}" "${name}"`
     if [ ! -z "${existing}" ]; then
         echo >&2 "${fn}: ${name}: not created, name is same as ${existing}"
         exit 1
@@ -84,13 +82,13 @@ fi
 if [ -z "${name}" ]; then
     igw_id=`aws ec2 create-internet-gateway \
         --no-paginate --output text \
-        --region "${REGION}" \
+        --region "${region}" \
         --query 'InternetGateway.InternetGatewayId'`
 else
     igw_id=`aws ec2 create-internet-gateway \
         --no-paginate --output text \
-        --region "${REGION}" \
-        --tag-specifications "ResourceType=internet-gateway,Tags=[{Key=Name,Value=${name}},{Key=creator,Value=${CREATOR}}]" \
+        --region "${region}" \
+        --tag-specifications "ResourceType=internet-gateway,Tags=[{Key=Name,Value=${name}},{Key=creator,Value=${creator}}]" \
         --query 'InternetGateway.InternetGatewayId'`
 fi
 

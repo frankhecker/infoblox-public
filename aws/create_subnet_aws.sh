@@ -17,18 +17,16 @@ usage() {
     exit 1
 }
 
-# Get added variables needed for AWS access, including default region.
-# NOTE: Credentials should be in the standard AWS-specified locations.
-# TODO: Remove the need for this extra file if possible.
-source "${HOME}"/.aws/set-aws-variables.sh
+# Get default region and creator ID.
+region=`aws configure list | grep '^ *region' | awk '{ print $2 }'`
+creator=`whoami`
 
 # Check and extract optional arguments.
-# REGION=(default value of REGION comes from set-aws-variable.sh)
 quiet=false
 while getopts "qr:" arg; do
     case "${arg}" in
         q) quiet=true ;;
-        r) REGION="${OPTARG}" ;;
+        r) region="${OPTARG}" ;;
         *) usage ;;
     esac
 done
@@ -41,8 +39,8 @@ subnet_cidr=$2
 subnet_name=$3
 
 # Check to see if the region was specified incorrectly.
-[ -z "${REGION}" ] && usage
-case "${REGION}" in
+[ -z "${region}" ] && usage
+case "${region}" in
     -q)
         echo "${fn}: -r option missing region"
         usage
@@ -50,7 +48,7 @@ case "${REGION}" in
 esac
 
 # Look for the VPC ID in which to create the subnet.
-vpc_id=`sh "${dir}"/list_vpc_aws.sh -q -r "${REGION}" "${vpc}"`
+vpc_id=`sh "${dir}"/list_vpc_aws.sh -q -r "${region}" "${vpc}"`
 if [ -z "${vpc_id}" ]; then
     echo >&2 "${fn}: ${vpc}: VPC not found"
     exit 1
@@ -66,7 +64,7 @@ case "${vpc_id}" in
 esac
 
 # If subnets with specified address already exist, output IDs.
-existing=`sh "${dir}"/list_subnet_aws.sh -q -r "${REGION}" -v "${vpc_id}" "${subnet_cidr}"`
+existing=`sh "${dir}"/list_subnet_aws.sh -q -r "${region}" -v "${vpc_id}" "${subnet_cidr}"`
 if [ ! -z "${existing}" ]; then
     [ "${quiet}" = false ] && echo >&2 "${fn}: ${subnet_cidr}: subnet exists"
     echo "${existing}"
@@ -75,7 +73,7 @@ fi
 
 # If other subnets with specified name exist, do not create this one.
 if [ ! -z "${subnet_name}" ]; then
-    existing=`sh "${dir}"/list_subnet_aws.sh -q -r "${REGION}" -v "${vpc_id}" "${subnet_name}"`
+    existing=`sh "${dir}"/list_subnet_aws.sh -q -r "${region}" -v "${vpc_id}" "${subnet_name}"`
     if [ ! -z "${existing}" ]; then
         echo >&2 "${fn}: ${subnet_cidr}: not created, name is same as ${existing}"
         exit 1
@@ -86,16 +84,16 @@ fi
 if [ -z "${subnet_name}" ]; then
     aws ec2 create-subnet \
         --no-paginate --output text \
-        --region "${REGION}" \
+        --region "${region}" \
         --vpc-id "${vpc_id}" \
         --cidr-block "${subnet_cidr}" \
         --query 'Subnet.SubnetId'
 else
     aws ec2 create-subnet \
         --no-paginate --output text \
-        --region "${REGION}" \
+        --region "${region}" \
         --vpc-id "${vpc_id}" \
         --cidr-block "${subnet_cidr}" \
-        --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=${subnet_name}},{Key=creator,Value=${CREATOR}}]" \
+        --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=${subnet_name}},{Key=creator,Value=${creator}}]" \
         --query 'Subnet.SubnetId'
 fi

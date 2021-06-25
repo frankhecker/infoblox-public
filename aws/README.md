@@ -17,6 +17,10 @@ Utility scripts for working with AWS using the AWS CLI.
   and optionally give it a name
 * `delete_igw_aws.sh`: Detach an Internet gateway from its VPC (if
   attached) and delete it.
+* `list_rtb_aws.sh`: List route table IDs and (optionally) their names
+  and VPCs.
+* `create_rtb_aws.sh`: Create a route table in a VPC and optionally
+  give it a name
 
 Examples of how to use these scripts:
 
@@ -71,18 +75,23 @@ Examples of how to use these scripts:
     # Detach the Internet gateway "Test IGW" from its VPC and delete it.
     delete_igw_aws.sh "Test IGW"
 
-As implied above, the scripts allow VPCs, subnets, and gateways to be
-identified by ID, name (i.e., the value of the "Name" tag), or address
-(if applicable). The scripts properly handle cases where the name
-contains spaces or the name or (if applicable) address are duplicated
-across multiple VPCs, subnets, or gateways.
+    # List IDs of route tables in VPC 10.192.16.0/20.
+    list_rtb_aws.sh -v 10.192.16.0/20
+
+    # Create a route table "Test RTB" in the VPC my-vpc.
+    create_rtb_aws.sh my-vpc "Test RTB"
+
+As implied above, the scripts allow VPCs, subnets, and other objects
+to be identified by ID, name (i.e., the value of the "Name" tag), or
+address (if applicable). The scripts properly handle cases where the
+name contains spaces or the name or (if applicable) address are
+duplicated across multiple VPCs, subnets, or other objects.
 
 There are also some test scripts to verify proper functioning of the
 above scripts.
 
 Running the scripts requires that a current version of the AWS CLI be
-installed (<https://aws.amazon.com/cli/>). At present the scripts also
-require that a script `~/set-aws-variables.sh` be present and set the
-value of the variable REGION to the desired default AWS region (e.g.,
-"us-west-2") and the value of the variable CREATOR to the desired
-creator userid (e.g., "jdoe").
+installed (<https://aws.amazon.com/cli/>). The AWS credentials and
+default values for the AWS region and other parameters must be stored
+in one of the standard locations used by the AWS CLI (e.g.,
+~/.aws/credentials and ~/.aws/config).
